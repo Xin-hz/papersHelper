@@ -1,0 +1,29 @@
+# 环境与构建
+.env
+.env.local
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+*.egg
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+
+# 上传文件
+knowledge_uploads/
+
+# 日志与系统
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

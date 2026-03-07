@@ -1,0 +1,17 @@
+# 本地一键启动 PostgreSQL + pgvector（无需 Homebrew）
+# 使用：docker compose up -d
+# 然后：python scripts/init_db.py
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: papers_helper
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

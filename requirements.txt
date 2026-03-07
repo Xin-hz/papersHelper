@@ -1,0 +1,29 @@
+# Web
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# 配置
+pydantic-settings>=2.0.0
+
+# LangChain
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-openai>=0.0.5
+langchain-core>=0.1.0
+langchain-text-splitters>=0.0.1
+
+# 向量库与 Embedding
+pgvector>=0.2.4
+psycopg2-binary>=2.9.9
+numpy>=2.0.0
+sentence-transformers>=2.2.0
+dashscope>=1.14.0  # 通义 Embedding API（EMBEDDING_PROVIDER=dashscope 时需要）
+
+# 文档解析
+pypdf>=3.17.0
+python-docx>=1.1.0
+
+# 可选：需要 GPU 时
+# torch
+# transformers
