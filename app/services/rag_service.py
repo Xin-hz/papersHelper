@@ -2,7 +2,6 @@
 from typing import List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 from app.prompts import SYSTEM_PROMPT
@@ -34,32 +33,46 @@ def _format_docs(docs) -> str:
     return "\n\n---\n\n".join(doc.page_content for doc in docs)
 
 
-def ask_knowledge(question: str, top_k: Optional[int] = None) -> tuple[str, List[str]]:
+def _source_item(doc) -> dict:
+    """把检索片段整理成可展示的来源信息（文档标题/作者/年份/摘录）"""
+    md = doc.metadata or {}
+    title = md.get("title") or md.get("source") or "未知文档"
+    snippet = doc.page_content.strip()
+    if len(snippet) > 200:
+        snippet = snippet[:200] + "..."
+    return {
+        "title": str(title),
+        "source": md.get("source", ""),
+        "authors": md.get("authors") or [],
+        "year": md.get("year"),
+        "snippet": snippet,
+    }
+
+
+def ask_knowledge(question: str, top_k: Optional[int] = None) -> tuple[str, list[dict]]:
     """
     基于知识库 RAG 回答问题。
-    返回 (answer, sources)。
+    返回 (answer, sources)，sources 为结构化来源列表。
     """
     retriever = get_retriever(top_k=top_k)
-    llm = get_chat_llm(temperature=0.3)
-    prompt = RAG_PROMPT
-
-    chain = (
-        {"context": retriever | _format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
-    answer = chain.invoke(question)
-
-    # 检索到的文档片段作为来源
     docs = retriever.invoke(question)
-    sources = [d.page_content[:200] + "..." if len(d.page_content) > 200 else d.page_content for d in docs]
+    context = _format_docs(docs)
 
-    return answer, sources
+    llm = get_chat_llm(temperature=0.3)
+    answer = (RAG_PROMPT | llm | StrOutputParser()).invoke(
+        {"context": context or "（知识库中未检索到相关内容）", "question": question}
+    )
+
+    return answer, [_source_item(d) for d in docs]
+
+
+def retrieve_for_writing(query: str, top_k: Optional[int] = None) -> list:
+    """为写作检索知识库片段，返回 Document 列表（含元数据）"""
+    retriever = get_retriever(top_k=top_k or 4)
+    return retriever.invoke(query)
 
 
 def get_context_for_writing(query: str, top_k: Optional[int] = None) -> str:
     """为论文生成/扩写提供检索到的上下文"""
-    retriever = get_retriever(top_k=top_k or 8)
-    docs = retriever.invoke(query)
+    docs = retrieve_for_writing(query, top_k=top_k or 8)
     return _format_docs(docs)

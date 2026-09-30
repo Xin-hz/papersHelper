@@ -30,7 +30,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { api } from '../api'
+import { api, friendlyError } from '../api'
 
 const form = reactive({ topic: '', grade: '', goal: '', use_rag: true })
 const loading = ref(false)

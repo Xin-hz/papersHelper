@@ -37,21 +37,26 @@ def _get_dashscope_embeddings() -> Embeddings:
         raise ValueError("使用 dashscope 时请在 .env 中设置 DASHSCOPE_API_KEY 或 QWEN_API_KEY")
     base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model = getattr(s, "dashscope_embedding_model", "text-embedding-v3")
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    # 显式超时与重试：避免个别请求挂死导致整个入库流程卡住
+    client = OpenAI(api_key=api_key, base_url=base_url, timeout=30.0, max_retries=3)
 
     class BailianEmbeddings(Embeddings):
-        def embed_documents(self, texts: List[str]) -> List[List[float]]:
-            out = []
-            for t in texts:
-                t = t if isinstance(t, str) else (str(t) if t is not None else "")
-                r = client.embeddings.create(model=model, input=t)
-                out.append(r.data[0].embedding)
+        def _embed(self, texts: List[str]) -> List[List[float]]:
+            # 批量请求（兼容接口支持数组输入），比逐条调用快一个数量级
+            out: List[List[float]] = []
+            batch = 10
+            for i in range(0, len(texts), batch):
+                part = [t if isinstance(t, str) else str(t or "") for t in texts[i:i + batch]]
+                r = client.embeddings.create(model=model, input=part)
+                out.extend(d.embedding for d in r.data)
             return out
+
+        def embed_documents(self, texts: List[str]) -> List[List[float]]:
+            return self._embed(texts)
 
         def embed_query(self, text: str) -> List[float]:
             text = text if isinstance(text, str) else (str(text) if text is not None else "")
-            r = client.embeddings.create(model=model, input=text)
-            return r.data[0].embedding
+            return self._embed([text])[0]
 
     return BailianEmbeddings()
 
@@ -107,3 +112,102 @@ def get_retriever(top_k: Optional[int] = None):
     k = top_k or settings.top_k_retrieve
     vs = create_vector_store(use_existing=True)
     return vs.as_retriever(search_kwargs={"k": k})
+
+
+def clear_collection(collection_name: Optional[str] = None) -> int:
+    """清空指定集合的全部向量片段，返回删除的条数（用于重建索引）"""
+    import psycopg2
+
+    name = collection_name or get_collection_name()
+    conn = psycopg2.connect(get_settings().database_url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM langchain_pg_embedding
+                WHERE collection_id = (SELECT uuid FROM langchain_pg_collection WHERE name = %s)
+                """,
+                (name,),
+            )
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
+
+
+def get_vector_store_stats() -> dict:
+    """获取向量库统计信息"""
+    try:
+        import psycopg2
+        from app.config import get_settings
+
+        settings = get_settings()
+        db_url = settings.database_url
+
+        # 解析数据库连接信息
+        if db_url.startswith("postgresql://") or db_url.startswith("postgresql+psycopg2://"):
+            # 移除协议前缀
+            clean_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
+            clean_url = clean_url.replace("postgresql://", "")
+
+            # 解析连接信息
+            parts = clean_url.split("@")
+            if len(parts) == 2:
+                user_pass = parts[0].split(":")
+                host_db = parts[1].split("/")
+
+                user = user_pass[0] if len(user_pass) > 0 else "postgres"
+                password = user_pass[1] if len(user_pass) > 1 else ""
+                host_port = host_db[0].split(":")
+                host = host_port[0]
+                port = host_port[1] if len(host_port) > 1 else "5432"
+                database = host_db[1] if len(host_db) > 1 else "postgres"
+
+                # 连接数据库
+                conn = psycopg2.connect(
+                    host=host,
+                    port=int(port),
+                    database=database,
+                    user=user,
+                    password=password
+                )
+
+                cursor = conn.cursor()
+
+                # 获取集合名称
+                collection_name = get_collection_name()
+
+                # 统计文档数量（去重title或source的组合）
+                cursor.execute(f"""
+                    SELECT COUNT(DISTINCT CASE
+                        WHEN cmetadata->>'title' IS NOT NULL AND cmetadata->>'title' != ''
+                        THEN cmetadata->>'title'
+                        ELSE cmetadata->>'source'
+                    END)
+                    FROM langchain_pg_embedding
+                    WHERE collection_id = (SELECT uuid FROM langchain_pg_collection WHERE name = '{collection_name}')
+                """)
+                document_count = cursor.fetchone()[0] or 0
+
+                # 统计向量片段总数
+                cursor.execute(f"""
+                    SELECT COUNT(*)
+                    FROM langchain_pg_embedding
+                    WHERE collection_id = (SELECT uuid FROM langchain_pg_collection WHERE name = '{collection_name}')
+                """)
+                vector_count = cursor.fetchone()[0] or 0
+
+                cursor.close()
+                conn.close()
+
+                return {
+                    "document_count": document_count,
+                    "vector_count": vector_count
+                }
+    except Exception as e:
+        print(f"获取向量库统计出错: {e}")
+        return {
+            "document_count": 0,
+            "vector_count": 0
+        }

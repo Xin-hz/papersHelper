@@ -1,4 +1,6 @@
 """文档加载与切片：支持 PDF、DOCX、DOC"""
+import logging
+import re
 from pathlib import Path
 import platform
 import subprocess
@@ -10,6 +12,40 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
+
+# 中文、字母、数字与常用标点视为有效内容字符
+_MEANINGFUL = re.compile(r"[\u4e00-\u9fffA-Za-z0-9，。；：、！？…—·（）()《》<>\"'‘’“”:;,.!?\s]")
+_CJK = re.compile(r"[\u4e00-\u9fff]")
+_ASCII_WORD = re.compile(r"[A-Za-z]{2,}")
+_XML_JUNK = re.compile(r"xmlns|xpacket|<rdf:|mwg-rs|<\?xml|<x:xmpmeta")
+_CTRL_CHARS = re.compile(r"[\x00-\x08\x0b\x0e-\x1f]")
+# 单文件切片上限：防止异常大文档（如内嵌大量对象的 .doc）拖垮向量化
+MAX_CHUNKS_PER_FILE = 500
+
+
+def _meaningful_ratio(text: str) -> float:
+    if not text:
+        return 0.0
+    return len(_MEANINGFUL.findall(text)) / len(text)
+
+
+def _is_valid_chunk(text: str) -> bool:
+    """有效片段：长度够、非控制字符/乱码、且像自然语言（中文或英文散文），
+    排除 .doc 内嵌图片的 XML 元数据、二进制乱码等提取残渣。"""
+    t = text.strip()
+    if len(t) < 50:
+        return False
+    if _CTRL_CHARS.search(t):
+        return False
+    if _meaningful_ratio(t) < 0.6:
+        return False
+    if len(_CJK.findall(t)) >= 10:
+        return True
+    if _XML_JUNK.search(t):
+        return False
+    return len(_ASCII_WORD.findall(t)) >= 15
 
 
 def _load_doc_legacy(file_path: str) -> List[Document]:
@@ -27,6 +63,8 @@ def _load_doc_legacy(file_path: str) -> List[Document]:
             )
             text = Path(out_path).read_text(encoding="utf-8", errors="replace")
             Path(out_path).unlink(missing_ok=True)
+            # .doc 提取的文本可能混入 NUL 等控制字符，psycopg2 写库会报错
+            text = text.replace("\x00", "")
         except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
             raise ValueError(f".doc 转换失败: {e}") from e
     else:
@@ -77,7 +115,7 @@ def load_document(file_path: str) -> List[Document]:
 
 
 def chunk_documents(documents: List[Document]) -> List[Document]:
-    """对文档列表做递归切片"""
+    """对文档列表做递归切片，过滤过短的无效片段"""
     settings = get_settings()
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.chunk_size,
@@ -85,7 +123,16 @@ def chunk_documents(documents: List[Document]) -> List[Document]:
         separators=["\n\n", "\n", "。", "；", " ", ""],
         length_function=len,
     )
-    return splitter.split_documents(documents)
+    chunks = splitter.split_documents(documents)
+    # 过滤无效片段：过短的、乱码、控制字符、XML 元数据残渣
+    valid = [c for c in chunks if _is_valid_chunk(c.page_content)]
+    dropped = len(chunks) - len(valid)
+    if dropped:
+        logger.info("已过滤 %d 个无效/乱码片段", dropped)
+    if len(valid) > MAX_CHUNKS_PER_FILE:
+        logger.warning("切片数 %d 超过上限 %d，已截断（文档可能异常，建议另存为 .docx 重新上传）", len(valid), MAX_CHUNKS_PER_FILE)
+        valid = valid[:MAX_CHUNKS_PER_FILE]
+    return valid
 
 
 def load_and_chunk_file(file_path: str) -> List[Document]:
