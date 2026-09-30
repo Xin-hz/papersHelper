@@ -4,11 +4,11 @@
       <router-link to="/" class="nav-logo">幼儿园教师 AI 论文助手</router-link>
       <div class="nav-links">
         <router-link to="/" exact-active-class="nav-active">首页</router-link>
-        <router-link to="/paper" active-class="nav-active">论文</router-link>
-        <router-link to="/lesson" active-class="nav-active">教案</router-link>
-        <router-link to="/case" active-class="nav-active">教学案例</router-link>
-        <router-link to="/topic" active-class="nav-active">课题申报</router-link>
+        <router-link to="/write" active-class="nav-active">写论文</router-link>
+        <router-link to="/revise" active-class="nav-active">改论文</router-link>
+        <router-link to="/topics" active-class="nav-active">选题库</router-link>
         <router-link to="/knowledge" active-class="nav-active">知识库</router-link>
+        <router-link to="/daily" active-class="nav-active">日常工具</router-link>
       </div>
     </header>
     <main class="container">

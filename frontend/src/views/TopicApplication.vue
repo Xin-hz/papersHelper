@@ -23,7 +23,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { api } from '../api'
+import { api, friendlyError } from '../api'
 
 const form = reactive({ topic: '', direction: '', use_rag: true })
 const loading = ref(false)

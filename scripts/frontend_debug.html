@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>前端调试工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .result { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>论文采集前端调试</h1>
+
+    <div>
+        <button onclick="testAPIBase()">测试API_BASE</button>
+        <button onclick="testSearchAPI()">测试搜索API</button>
+        <button onclick="testCollectorAPI()">测试采集API</button>
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <script>
+        // 模拟前端的API_BASE配置
+        const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE || 'http://localhost:8000');
+
+        function log(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            const className = isError ? 'error' : 'success';
+            resultDiv.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        function testAPIBase() {
+            log(`API_BASE配置: ${API_BASE}`);
+        }
+
+        async function testSearchAPI() {
+            log('正在测试搜索API...');
+            try {
+                const url = `${API_BASE}/api/papers/search`;
+                log(`请求URL: ${url}`);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: 'education',
+                        sources: ['arxiv'],
+                        max_results: 2
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`搜索成功! 找到 ${data.total || 0} 篇论文`);
+                log(`响应数据: ${JSON.stringify(data).substring(0, 200)}...`);
+            } catch (error) {
+                log(`错误: ${error.message}`, true);
+                console.error('详细错误:', error);
+            }
+        }
+
+        async function testCollectorAPI() {
+            log('正在测试采集API...');
+            try {
+                const url = `${API_BASE}/api/papers/collect`;
+                log(`请求URL: ${url}`);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: 'test',
+                        sources: ['arxiv'],
+                        max_papers: 1,
+                        auto_ingest: false
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`采集测试完成: ${data.message}`);
+            } catch (error) {
+                log(`错误: ${error.message}`, true);
+                console.error('详细错误:', error);
+            }
+        }
+
+        // 页面加载时显示API_BASE
+        window.addEventListener('DOMContentLoaded', () => {
+            log(`页面加载完成，API_BASE: ${API_BASE}`);
+        });
+    </script>
+</body>
+</html>

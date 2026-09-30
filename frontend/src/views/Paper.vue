@@ -20,6 +20,22 @@
           <input id="r1" v-model="form.use_rag" type="checkbox" />
           <label for="r1" style="margin:0">结合知识库</label>
         </div>
+        <div class="docx-actions">
+          <button class="btn" :disabled="loading || docxLoading" @click="submit">{{ submitLabel }}</button>
+          <button class="btn btn-primary" :disabled="loading || docxLoading || !form.title.trim()" @click="generateDocx">
+            {{ docxLoading ? docxLabel : '📄 生成图文排版 Word' }}
+          </button>
+        </div>
+        <p v-if="docxLoading || docxMsg" :class="['msg', docxMsgType]">{{ docxLoading ? docxLabel : docxMsg }}</p>
+        <div v-if="docxResult" class="card docx-result">
+          <h2>文档已生成（约 {{ docxResult.words }} 字）</h2>
+          <p class="text-muted">
+            含 {{ docxResult.stats.charts }} 张图、{{ docxResult.stats.table }} 张表、参考文献 {{ docxResult.stats.refs }} 条
+          </p>
+          <div class="result-actions">
+            <a class="btn btn-primary" :href="docxHref" :download="docxResult.filename">📥 下载 Word 文档</a>
+          </div>
+        </div>
       </template>
       <!-- 润色 -->
       <template v-if="tab === 'improve'">
@@ -46,19 +62,26 @@
         <label>降重侧重点（可选）</label>
         <input v-model="form.focus" type="text" placeholder="如：同义替换、句式改写" />
       </template>
-      <button class="btn" :disabled="loading" @click="submit">{{ loading ? '处理中…' : '提交' }}</button>
+      <button v-if="tab !== 'generate'" class="btn" :disabled="loading" @click="submit">{{ submitLabel }}</button>
     </div>
     <div v-if="msg" :class="['msg', msg.type]">{{ msg.text }}</div>
     <div v-if="result" class="card">
-      <h2>结果 <button class="btn btn-secondary copy-btn" @click="copy(result)">复制</button></h2>
+      <h2>结果（约 {{ result.length }} 字）
+        <span class="result-actions">
+          <button class="btn btn-secondary copy-btn" @click="copy(result)">复制</button>
+          <button class="btn btn-secondary copy-btn" @click="download(result)">下载 .txt</button>
+          <button v-if="tab === 'generate'" class="btn btn-secondary copy-btn" @click="sendTo('improve')">送去润色</button>
+          <button v-if="tab === 'generate'" class="btn btn-secondary copy-btn" @click="sendTo('reduce')">送去降重</button>
+        </span>
+      </h2>
       <div class="result-box">{{ result }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { api } from '../api'
+import { ref, reactive, computed } from 'vue'
+import { api, friendlyError } from '../api'
 
 const tab = ref('generate')
 const tabs = [
@@ -82,12 +105,84 @@ const loading = ref(false)
 const result = ref('')
 const msg = ref(null)
 
+const submitLabel = computed(() => {
+  if (!loading.value) return '提交'
+  if (tab.value === 'generate') return '生成中…多阶段生成约需 5-10 分钟（网络与模型速度相关），请勿关闭页面'
+  return '处理中…'
+})
+
 function showMsg(text, type = 'error') {
-  msg.value = { text, type }
+  msg.value = { text: friendlyError(text), type }
   setTimeout(() => { msg.value = null }, 5000)
 }
 function copy(text) {
   navigator.clipboard.writeText(text).then(() => showMsg('已复制', 'success')).catch(() => {})
+}
+function download(text) {
+  const name = tab.value === 'generate' ? `${form.title || '论文'}.txt` : '结果.txt'
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = name.replace(/[\\/:*?"<>|]/g, '_')
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+// 把生成结果带入润色/降重标签页，接续处理
+function sendTo(target) {
+  form.content = result.value
+  result.value = ''
+  tab.value = target
+  showMsg('已带入内容，可直接提交', 'success')
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 图文排版 Word 生成
+const docxLoading = ref(false)
+const docxResult = ref(null)
+const docxMsg = ref('')
+const docxMsgType = ref('info')
+const docxStart = ref(0)
+const docxTimer = ref(null)
+const elapsed = ref(0)
+const docxLabel = computed(() =>
+  `📄 排版生成中…约需 5-10 分钟（已进行 ${Math.floor(elapsed.value / 60)} 分 ${elapsed.value % 60} 秒），请勿关闭页面`
+)
+const docxHref = computed(() =>
+  docxResult.value ? `/api/download/${encodeURIComponent(docxResult.value.filename)}` : ''
+)
+
+async function generateDocx() {
+  if (!form.title.trim()) return showMsg('请填写标题')
+  docxLoading.value = true
+  docxResult.value = null
+  docxMsg.value = ''
+  elapsed.value = 0
+  docxStart.value = Date.now()
+  docxTimer.value = setInterval(() => { elapsed.value = Math.floor((Date.now() - docxStart.value) / 1000) }, 1000)
+  try {
+    const res = await fetch('/api/paper/generate_docx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: form.title,
+        direction: form.direction || undefined,
+        use_rag: form.use_rag,
+      }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      docxResult.value = data
+    } else {
+      docxMsg.value = data.error || '生成失败，请重试'
+      docxMsgType.value = 'error'
+    }
+  } catch (e) {
+    docxMsg.value = '请求出错: ' + e.message
+    docxMsgType.value = 'error'
+  } finally {
+    clearInterval(docxTimer.value)
+    docxLoading.value = false
+  }
 }
 
 async function submit() {
@@ -124,4 +219,10 @@ async function submit() {
 
 <style scoped>
 .text-muted { color: var(--text-muted); }
+.result-actions { display: inline-flex; gap: 0.5rem; margin-left: 0.75rem; flex-wrap: wrap; }
+.docx-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.docx-result { margin-top: 1rem; }
+.docx-result h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+.docx-result .result-actions { margin-left: 0; margin-top: 0.6rem; }
+.msg.info { background: #eef; color: #334; border: 1px solid #ccd; }
 </style>

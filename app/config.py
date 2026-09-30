@@ -13,8 +13,16 @@ class Settings(BaseSettings):
     # 数据库 (PostgreSQL + pgvector)
     database_url: str = "postgresql://postgres:postgres@localhost:5432/papers_helper"
 
-    # LLM: kimi | qwen
-    llm_provider: str = "kimi"
+    # LLM: deepseek | glm | kimi | qwen
+    llm_provider: str = "deepseek"
+    # DeepSeek API（OpenAI 兼容）
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com/v1"
+    deepseek_model: str = "4.1flash"
+    # 智谱 GLM API（OpenAI 兼容）
+    glm_api_key: str = ""
+    glm_base_url: str = "https://open.bigmodel.cn/api/paas/v4"
+    glm_model: str = "glm-5.3-flash"
     # Kimi API (OpenAI 兼容)
     kimi_api_key: str = ""
     kimi_base_url: str = "https://api.moonshot.cn/v1"
@@ -32,9 +40,12 @@ class Settings(BaseSettings):
     dashscope_embedding_model: str = "text-embedding-v3"
 
     # RAG
-    chunk_size: int = 500
-    chunk_overlap: int = 50
-    top_k_retrieve: int = 5
+    chunk_size: int = 900
+    chunk_overlap: int = 180
+    top_k_retrieve: int = 6
+
+    # 长文生成（论文等）可覆盖所用模型，留空则用 LLM_PROVIDER 默认模型
+    paper_model: str = ""
 
     # 知识库上传目录
     upload_dir: str = "knowledge_uploads"

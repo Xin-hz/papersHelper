@@ -39,7 +39,11 @@ if _has_frontend:
     def serve_app_index():
         index_file = _frontend_dist / "index.html"
         if index_file.is_file():
-            return FileResponse(str(index_file), media_type="text/html")
+            # 禁止浏览器缓存入口页：否则前端重新构建后用户仍会加载旧版本 JS
+            return FileResponse(
+                str(index_file), media_type="text/html",
+                headers={"Cache-Control": "no-cache, must-revalidate"},
+            )
         from fastapi import HTTPException
         raise HTTPException(status_code=503, detail="frontend/index.html not found")
 
