@@ -24,12 +24,7 @@ def main():
     city = next((a for a in args[1:] if "等奖" not in a), None)
 
     data = json.loads(DATA.read_text(encoding="utf-8"))
-    hits = [
-        e for e in data
-        if kw in e["title"] or kw in e["unit"]
-        and (not award or e["award"] == award)
-        and (not city or city in e["city"])
-    ]
+    hits = [e for e in data if kw in e["title"] or kw in e["unit"]]
     if award:
         hits = [e for e in hits if e["award"] == award]
     if city:
