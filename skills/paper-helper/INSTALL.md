@@ -12,7 +12,6 @@ paper-helper 分两层：**能力层**（本目录，随仓库分发）+ **数�
 ```
 请帮我安装 paper-helper 幼儿园论文助手技能：
 1. 克隆仓库 git clone https://github.com/Xin-hz/papersHelper.git /tmp/papersHelper
-   （若提示无权限，先向仓库所有者申请访问，或改用发来的 ZIP 解压到 /tmp/papersHelper）
 2. 把 /tmp/papersHelper/skills/paper-helper 完整拷贝到 ~/.agents/skills/paper-helper
    （如还用 Claude Code，再软链一份：ln -s ~/.agents/skills/paper-helper ~/.claude/skills/paper-helper）
 3. 运行 python3 ~/.agents/skills/paper-helper/scripts/init_kb.py 初始化知识库
@@ -27,7 +26,7 @@ Codex 用户更简单，一句即可：
 装完运行 scripts/doctor.py 自检并按提示初始化知识库。
 ```
 
-> 仓库为私有时，同事需先获得 GitHub 协作权限；或直接发 ZIP（见方式三）。
+> 仓库是公开的，同事无需任何 GitHub 权限，克隆即可。
 
 ## 方式二：同事用 WorkBuddy 等纯提示词产品（无本地文件能力）
 
