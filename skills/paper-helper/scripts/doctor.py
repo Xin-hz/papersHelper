@@ -87,6 +87,13 @@ if shutil.which("pdftotext"):
 else:
     warn("pdftotext 未安装", "PDF 文档无法提取文字", "brew install poppler（或 apt install poppler-utils）")
 
+# ---------- 6b 联网检索（可选） ----------
+if os.environ.get("TAVILY_API_KEY", "").strip() or (KB_ROOT / ".tavily_key").is_file():
+    ok("Tavily 已配置（知识库缺资料时可联网补充）")
+else:
+    warn("Tavily 未配置", "本地知识库无相关内容时无法联网补公开资料（可选）",
+         "tavily.com 免费申请后：echo tvly-你的key > ~/paper-kb/.tavily_key")
+
 # ---------- 7 知识库 ----------
 if not KB_ROOT.is_dir():
     warn("知识库目录不存在", str(KB_ROOT), f"python3 \"{SKILL}/scripts/init_kb.py\" 一键初始化")

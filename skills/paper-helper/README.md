@@ -33,7 +33,9 @@ python3 /软件所在路径/paper-helper/scripts/kb_build.py
 python3 /软件所在路径/paper-helper/scripts/doctor.py   # 自检到无 ❌
 ```
 
-**依赖**：核心功能零依赖（Python 3.8+ 自带 SQLite）。排版 Word 需 `pip3 install python-docx`，配图另需 matplotlib。无需数据库、无需 API Key。
+**依赖**：核心功能零依赖（Python 3.8+ 自带 SQLite）。排版 Word 需 `pip3 install python-docx`，配图另需 matplotlib。
+联网检索（可选）：到 [tavily.com](https://tavily.com) 免费申请 Key（每月 1000 次）后执行
+`echo "tvly-你的key" > ~/paper-kb/.tavily_key`——本地知识库缺资料时自动联网补充，不配也能用。
 
 ## 三、日常怎么用（对 CLI 说人话即可）
 
@@ -78,6 +80,7 @@ python3 ~/.../paper-helper/scripts/kb_query.py "观察记录" -c 园本课程   
 | `init_kb.py` | 一键初始化知识库骨架（幂等） | `init_kb.py` |
 | `doctor.py` | 环境自检 + 冒烟测试，装完必跑 | `doctor.py` |
 | `drafts.py` | 列近期成稿，写作前比对防雷同 | `drafts.py` |
+| `web_search.py` | 联网检索公开资料（Tavily，可选） | `web_search.py "户外自主游戏" -k 5` |
 
 知识库位置默认 `~/paper-kb/`，设环境变量 `PAPER_KB` 可改。索引文件是 `<KB>/.index.db`，删掉重跑 kb_build 即完全重建。
 

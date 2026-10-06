@@ -64,6 +64,21 @@ python3 ~/.agents/skills/paper-helper/scripts/kb_build.py
 python3 ~/.agents/skills/paper-helper/scripts/doctor.py
 ```
 
+## 可选：联网检索（Tavily，推荐每人配一个）
+
+本地知识库覆盖不到的主题，技能会联网补公开资料。免费额度每月 1000 次，各机器配各自的 Key（**不会进 git，别共用**）：
+
+```bash
+# 1. 到 https://tavily.com 注册 → API Keys → 复制（tvly- 开头）
+echo "tvly-你的key" > ~/paper-kb/.tavily_key
+chmod 600 ~/paper-kb/.tavily_key
+
+# 2. 测试
+python3 ~/.agents/skills/paper-helper/scripts/web_search.py "幼儿园户外自主游戏"
+```
+
+也可用环境变量 `TAVILY_API_KEY`。不配置不影响其他功能，只是知识库缺资料时退化为"如实说明并建议补充文档"。
+
 日常使用**不需要记任何命令**——直接对 AI 说「帮我写一篇论文…」「这篇帮我降重」「出评审报告」即可，
 技能会自动调用脚本。依赖：核心功能零依赖（macOS/Linux 自带 Python 即可）；
 Word 排版需 `pip3 install python-docx`；配图另需 matplotlib；PDF 入库需 pdftotext（doctor 会逐项提示）。
