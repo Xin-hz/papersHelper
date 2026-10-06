@@ -102,6 +102,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 前端为 Vue 3 + Vite 单页应用。开发：`cd frontend && npm install && npm run dev`（http://localhost:5173）。构建：`npm run build`，完成后访问 http://localhost:8000/app/ 使用（后端会自动挂载 frontend/dist）。详见 [docs/FRONTEND_FLOW.md](docs/FRONTEND_FLOW.md) 与 [frontend/README.md](frontend/README.md)。
 
+## 独立技能版（paper-helper，推荐给同事）
+
+本仓库另含一个**零依赖、可单独分发**的论文助手技能 [skills/paper-helper](skills/paper-helper/)：
+写论文四步流程 + 改论文四操作、浙江获奖选题库 1459 条、本地知识库检索、成稿自检与评选规范 Word 排版。
+同事无需部署本后端，粘贴一段安装提示词即可装好——见 [skills/paper-helper/INSTALL.md](skills/paper-helper/INSTALL.md)。
+
 ## 接口说明
 
 | 方法 | 路径 | 说明 |

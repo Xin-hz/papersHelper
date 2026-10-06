@@ -15,6 +15,9 @@
 
 ## 二、安装（每台机器一次，约 2 分钟）
 
+**最快路径：把 [INSTALL.md](INSTALL.md) 方式一的那段安装提示词原样发给同事**，让他们粘贴给自己的 AI 即可。
+也可按下述手动安装，或用 WorkBuddy 纯提示词版（见 `prompts/一键导入提示词.md`）。
+
 ```bash
 # 1. 拿到本文件夹（拷贝或 git clone 整个 paper-helper/）
 
@@ -24,9 +27,10 @@ ln -s /软件所在路径/paper-helper ~/.agents/skills/paper-helper
 ln -s /软件所在路径/paper-helper ~/.claude/skills/paper-helper   # 用 Claude Code 的话
 
 # 3. 建自己的知识库
-mkdir -p ~/paper-kb/园本课程 ~/paper-kb/政策文件 ~/paper-kb/一般参考
-#    把自己的文档（Word/PDF/txt）放进对应分类文件夹，然后建索引：
+python3 /软件所在路径/paper-helper/scripts/init_kb.py
+#    把自己的文档（Word/PDF/txt）放进分类文件夹，然后建索引：
 python3 /软件所在路径/paper-helper/scripts/kb_build.py
+python3 /软件所在路径/paper-helper/scripts/doctor.py   # 自检到无 ❌
 ```
 
 **依赖**：核心功能零依赖（Python 3.8+ 自带 SQLite）。排版 Word 需 `pip3 install python-docx`，配图另需 matplotlib。无需数据库、无需 API Key。
@@ -70,6 +74,10 @@ python3 ~/.../paper-helper/scripts/kb_query.py "观察记录" -c 园本课程   
 | `kb_query.py` | 检索（中文子串匹配，OR 召回按相关度排序） | `kb_query.py "低结构材料 投放" -k 5 -c 园本课程` |
 | `topic_search.py` | 获奖选题检索 | `topic_search.py 自主游戏 一等奖 宁波` |
 | `make_docx.py` | 文本 → 评选规范 Word（表/图/文献） | `make_docx.py 论文.txt 输出.docx` |
+| `check_paper.py` | 成稿自检（结构/字数/引文/图表/样本量） | `check_paper.py 论文.txt` |
+| `init_kb.py` | 一键初始化知识库骨架（幂等） | `init_kb.py` |
+| `doctor.py` | 环境自检 + 冒烟测试，装完必跑 | `doctor.py` |
+| `drafts.py` | 列近期成稿，写作前比对防雷同 | `drafts.py` |
 
 知识库位置默认 `~/paper-kb/`，设环境变量 `PAPER_KB` 可改。索引文件是 `<KB>/.index.db`，删掉重跑 kb_build 即完全重建。
 
@@ -87,8 +95,9 @@ python3 ~/.../paper-helper/scripts/kb_query.py "观察记录" -c 园本课程   
 paper-helper/
 ├── SKILL.md              # 工作流定义（CLI 据此触发与执行）
 ├── README.md             # 本手册
+├── INSTALL.md            # 安装迁移指南（含发给同事的一键安装提示词）
 ├── scripts/              # kb_build / kb_query / topic_search / make_docx
-├── prompts/评审模板.md    # 评审报告结构
+├── prompts/              # 评审模板 / 写作参考卡 / WorkBuddy 一键导入提示词
 └── data/award_topics.json # 浙江 2024-2025 获奖选题 1459 条
 ```
 

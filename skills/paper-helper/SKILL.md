@@ -14,7 +14,19 @@ description: 幼儿园教师论文写作与修改的一站式助手（本地知�
 | 共享层（本 skill） | 工作流、提示词、脚本、获奖选题数据 | 本目录，随 git/拷贝分发 |
 | 本地层（各自维护） | 知识库文档与索引 | `~/paper-kb/`（环境变量 `PAPER_KB` 可覆盖） |
 
+> 本文所有 `scripts/xxx.py` 均指**本技能目录**下的脚本；安装与迁移见 [INSTALL.md](INSTALL.md)。
+
 知识库目录约定：**根目录下每个子文件夹 = 一个分类**（如 `获奖论文/`、`园本课程/`、`政策文件/`），散放文件归"未分类"。支持 .txt/.md/.docx/.doc(macOS)/.pdf(需 pdftotext)。
+
+## 首次使用（每台机器一次）
+
+```bash
+python3 <skill目录>/scripts/init_kb.py     # 初始化 ~/paper-kb/ 分类骨架与 .drafts/
+python3 <skill目录>/scripts/kb_build.py    # 用户放入文档后建索引
+python3 <skill目录>/scripts/doctor.py      # 环境自检：无 ❌ 即闭环就绪
+```
+
+换机器/同事安装后，**必须先跑 doctor.py**，按提示修复（缺 python-docx 装 python-docx，缺 pdftotext 装 poppler）。日常无需再跑。
 
 ## 知识库维护
 
@@ -42,6 +54,7 @@ python3 scripts/kb_query.py "低结构材料 投放" -k 5 [-c 园本课程]   # 
 ### 第③步 生成提纲
 - **先做"结构选型"再出提纲**（防止每篇论文模式雷同）：按 `prompts/写作参考卡.md` 从四个维度（研究范式/章节骨架/成效呈现/笔法）各选一种组合成本篇"结构基因"，参考卡内有各范式的提纲骨架样例
 - 若用户近期已有成稿（`~/paper-kb/.drafts/`），先比对骨架与化名，与最近一篇相同时**主动换一种组合**
+- 比对用 `python3 scripts/drafts.py` 列近期成稿（标题/时间），无则跳过
 - 生成 4-6 章提纲（中文编号"一、二、"，切口小）
 - **呈现给用户确认/修改**（同时告知所选结构组合及可换项），改到满意才进入第④步
 
@@ -90,9 +103,10 @@ python3 scripts/kb_query.py "低结构材料 投放" -k 5 [-c 园本课程]   # 
 
 ## 交付规范
 
-1. 文件命名：`{题目}_{版本}.docx`（如 `_v3终稿`），存 `~/paper-kb/.drafts/`
+1. 文件命名：`{题目}_{版本}.docx`（如 `_v3终稿`），**txt 与 docx 都**存 `~/paper-kb/.drafts/`（txt 供下一篇比对防雷同）
 2. 交付时必须说明：哪些数据/案例是示范性的、需用户替换（幼儿姓名、观察数据、单位署名）
 3. Word 用 `open -a wpsoffice <文件>` 直接打开给用户看
+4. 交付即闭环：自检全过 → 排版完成 → 归档 .drafts → 告知用户下一篇会自动比对防雷同
 
 ---
 
