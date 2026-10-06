@@ -4,6 +4,8 @@
 用法：
   python3 web_search.py "幼儿园 户外自主游戏 指导策略"
   python3 web_search.py "低结构材料 投放" -k 3 --depth advanced --no-answer
+  python3 web_search.py "幼小衔接 规则意识" --paper        # 学术模式：限定学术站点找论文
+  python3 web_search.py "观察记录" --domain hanspub.org    # 自定义限定站点（可重复）
 
 Key 读取顺序：环境变量 TAVILY_API_KEY > ~/paper-kb/.tavily_key（每台机器自配，勿入 git）
 """
@@ -14,6 +16,9 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+# 学术模式预设站点（开放获取 + 学术聚合/库；知网/万方/维普付费全文仍需人工去库下载）
+PAPER_DOMAINS = ["xueshu.baidu.com", "cnki.net", "wanfangdata.com.cn", "cqvip.com", "hanspub.org"]
 
 
 def get_key():
@@ -33,6 +38,10 @@ def main():
     ap.add_argument("--depth", choices=["basic", "advanced"], default="basic",
                     help="检索深度（advanced 更准更慢，默认 basic）")
     ap.add_argument("--no-answer", action="store_true", help="不请求 AI 摘要，只要来源列表")
+    ap.add_argument("--paper", action="store_true",
+                    help="学术模式：限定百度学术/知网/万方/维普/汉斯等学术站点检索论文")
+    ap.add_argument("--domain", action="append", default=[], metavar="SITE",
+                    help="限定站点（可重复使用），如 --domain hanspub.org")
     args = ap.parse_args()
 
     key = get_key()
@@ -43,12 +52,16 @@ def main():
               "免费申请：https://tavily.com（每月 1000 次额度）", file=sys.stderr)
         sys.exit(2)
 
-    body = json.dumps({
+    domains = list(args.domain) + (PAPER_DOMAINS if args.paper else [])
+    payload = {
         "query": args.query,
         "search_depth": args.depth,
         "max_results": max(1, min(args.top, 10)),
         "include_answer": not args.no_answer,
-    }).encode("utf-8")
+    }
+    if domains:
+        payload["include_domains"] = domains
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         "https://api.tavily.com/search",
         data=body,

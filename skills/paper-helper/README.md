@@ -80,7 +80,7 @@ python3 ~/.../paper-helper/scripts/kb_query.py "观察记录" -c 园本课程   
 | `init_kb.py` | 一键初始化知识库骨架（幂等） | `init_kb.py` |
 | `doctor.py` | 环境自检 + 冒烟测试，装完必跑 | `doctor.py` |
 | `drafts.py` | 列近期成稿，写作前比对防雷同 | `drafts.py` |
-| `web_search.py` | 联网检索公开资料（Tavily，可选） | `web_search.py "户外自主游戏" -k 5` |
+| `web_search.py` | 联网检索公开资料（Tavily，可选）；`--paper` 学术模式找论文 | `web_search.py "户外自主游戏" --paper` |
 
 知识库位置默认 `~/paper-kb/`，设环境变量 `PAPER_KB` 可改。索引文件是 `<KB>/.index.db`，删掉重跑 kb_build 即完全重建。
 
