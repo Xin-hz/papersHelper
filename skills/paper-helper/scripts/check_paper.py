@@ -3,7 +3,7 @@
 
 检查项：
   1 结构完整：标题行 / 摘要： / 关键词： / ≥3 个一级章节 / 参考文献节
-  2 字数：正文（不含参考文献、图表定义行、表格数据行）是否超评选上限（默认 4000）
+  2 字数：正文（不含参考文献、图表定义行、表格数据行）是否超上限（默认 4000 为评选口径，可用 --limit 调整）
   3 引文对应：正文 [n] 与参考文献条目编号一一对应（缺引/缺条/多余都报）
   4 图表配对：正文"（见图1）（见表1）"引用 ↔「图:…图1…」「表:…表1…」定义行，双向核对
   5 样本量一致：全文"共N名"只允许一个值（出现多个不同值报警）
@@ -22,7 +22,7 @@ from pathlib import Path
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("file", help="论文文本文件（make_docx 输入格式）")
-    ap.add_argument("--limit", type=int, default=4000, help="正文字数上限（默认 4000）")
+    ap.add_argument("--limit", type=int, default=4000, help="正文字数上限（默认 4000，评选口径；其他用途用 --limit 调整）")
     args = ap.parse_args()
 
     path = Path(args.file)
