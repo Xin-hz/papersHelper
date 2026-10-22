@@ -59,7 +59,7 @@ except Exception as e:
 
 # ---------- 4 脚本可运行 ----------
 for s in ["kb_build.py", "kb_query.py", "topic_search.py",
-          "check_paper.py", "make_docx.py", "init_kb.py", "drafts.py"]:
+          "check_paper.py", "make_docx.py", "init_kb.py", "drafts.py", "render_docx.py"]:
     p = SKILL / "scripts" / s
     try:
         compile(p.read_text(encoding="utf-8"), str(p), "exec")  # 仅语法检查，不产生 __pycache__
@@ -85,14 +85,30 @@ else:
 if shutil.which("pdftotext"):
     ok("pdftotext 已安装（PDF 入库可用）")
 else:
-    warn("pdftotext 未安装", "PDF 文档无法提取文字", "brew install poppler（或 apt install poppler-utils）")
+    warn("pdftotext 未安装", "脚本无法直接提取 PDF；AI 宿主有 PDF 阅读能力（如 ZCode）时可先读出文本存 .txt 入库，不必安装",
+         "brew install poppler（或 apt install poppler-utils），或让 AI 宿主读 PDF 后存为 .txt 再入库")
 
 # ---------- 6b 联网检索（可选） ----------
 if os.environ.get("TAVILY_API_KEY", "").strip() or (KB_ROOT / ".tavily_key").is_file():
-    ok("Tavily 已配置（知识库缺资料时可联网补充）")
+    ok("Tavily 已配置（脚本兜底检索可用；宿主自带联网检索时用不上）")
 else:
-    warn("Tavily 未配置", "本地知识库无相关内容时无法联网补公开资料（可选）",
-         "tavily.com 免费申请后：echo tvly-你的key > ~/paper-kb/.tavily_key")
+    warn("Tavily 未配置", "通常无影响：AI 宿主（ZCode/Claude Code 等）自带联网检索时优先用宿主的；仅纯本地脚本兜底才需要",
+         "（可选）tavily.com 免费申请后：echo tvly-你的key > ~/paper-kb/.tavily_key")
+
+# ---------- 6c 排版视觉验收（可选增强） ----------
+_soffice = next((c for c in (shutil.which("soffice"), shutil.which("libreoffice"),
+                             "/Applications/LibreOffice.app/Contents/MacOS/soffice")
+                 if c and Path(c).is_file()), None)
+_pdftoppm = shutil.which("pdftoppm")
+if _soffice and _pdftoppm:
+    ok("排版视觉验收可用（LibreOffice + pdftoppm 齐备，render_docx.py 可逐页渲染）")
+elif _soffice or _pdftoppm:
+    warn("排版视觉验收缺一环",
+         f"soffice：{'有' if _soffice else '无'}；pdftoppm：{'有' if _pdftoppm else '无'}",
+         "brew install --cask libreoffice && brew install poppler（可选，装齐后 render_docx.py 可用）")
+else:
+    warn("排版视觉验收不可用", "render_docx.py 需要 LibreOffice 与 poppler（可选增强，不影响核心流程）",
+         "brew install --cask libreoffice && brew install poppler；不装则跳过视觉验收，交付前人工查看 Word")
 
 # ---------- 7 知识库 ----------
 if not KB_ROOT.is_dir():

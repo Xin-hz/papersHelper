@@ -6,7 +6,7 @@
   根目录下的每个子文件夹 = 一个分类（如 获奖论文/ 园本课程/ 政策文件/）
   顶层散放文件归入"未分类"
 
-支持格式：.txt .md .docx（直接解析）；.doc（macOS textutil）；.pdf（需系统装有 pdftotext）
+支持格式：.txt .md .docx（直接解析）；.doc（macOS textutil）；.pdf（装有 pdftotext 时直接解析；未装可让 AI 宿主读出文本存 .txt 入库，等效）
 索引写入 <根目录>/.index.db（SQLite FTS5，trigram 分词支持中文子串检索）
 
 用法：

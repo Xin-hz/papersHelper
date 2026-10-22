@@ -15,7 +15,7 @@
 
 ## 二、安装（每台机器一次，约 2 分钟）
 
-**最快路径：把 [INSTALL.md](INSTALL.md) 方式一的那段安装提示词原样发给同事**，让他们粘贴给自己的 AI 即可。
+**最快路径：把 [INSTALL.md](INSTALL.md) 方式一的"一句话安装"发给同事**，让他们粘贴给自己的 AI 即可（AI 没装成时还有分步版兜底）。
 也可按下述手动安装，或用 WorkBuddy 纯提示词版（见 `prompts/一键导入提示词.md`）。
 
 ```bash
@@ -33,9 +33,8 @@ python3 /软件所在路径/paper-helper/scripts/kb_build.py
 python3 /软件所在路径/paper-helper/scripts/doctor.py   # 自检到无 ❌
 ```
 
-**依赖**：核心功能零依赖（Python 3.8+ 自带 SQLite）。排版 Word 需 `pip3 install python-docx`，配图另需 matplotlib。
-联网检索（可选）：到 [tavily.com](https://tavily.com) 免费申请 Key（每月 1000 次）后执行
-`echo "tvly-你的key" > ~/paper-kb/.tavily_key`——本地知识库缺资料时自动联网补充，不配也能用。
+**依赖**：核心功能零依赖（Python 3.8+ 自带 SQLite），可选依赖总表见 [INSTALL.md](INSTALL.md)。
+装在 ZCode 里还有多项自动增强（联网检索免 Key、文档面板交付、PDF 免装 poppler 入库、排版视觉验收等），见 INSTALL.md 的"ZCode 用户自动增强"。
 
 ## 三、日常怎么用（对 CLI 说人话即可）
 
@@ -44,16 +43,17 @@ python3 /软件所在路径/paper-helper/scripts/doctor.py   # 自检到无 ❌
 > **你**："帮我写一篇论文，题目是《××××》"
 > （没想好题目就说"帮我选个题"，会基于获奖数据推荐并查重）
 
-流程会走：给候选题目 → 检索你的知识库展示素材 → 出提纲给你改 → **问你要真实素材**（班级人数、真实数据、亲历案例——提供了就不像 AI 文）→ 分章撰写 → 排版成评选规范的 Word 并自动打开。
+流程会走：给候选题目 → 检索你的知识库展示素材 → 出提纲给你改 → **问你要真实素材**（班级人数、真实数据、亲历案例——提供了就不像 AI 文）→ 分章撰写 → 排版成评选规范的 Word 交付（ZCode 里在文档面板打开成稿并高亮需替换处；渲染依赖齐备时逐页视觉复核）。
 
 ### 改一篇论文
 
 > **你**："这篇论文帮我优化一下，第二部分太薄、结论别口号化"（贴文本或给文件路径）
 > **你**："这段帮我降重" / "给这篇论文出评审报告" / "按评审建议改"
+> ZCode 用户：把草稿在文档面板打开，选中一段说"改这段"即可，免整篇粘贴。
 
 - 优化：按你的意见逐条落实
 - 降重：轻/中/重三档，数字引用原样保留
-- 评审：模拟评委出报告——总体评价、五维打分（50 分制）、问题清单、修改建议、水平判断
+- 评审：模拟评委出报告——总体评价、五维打分（50 分制）、问题清单、修改建议、水平判断（ZCode 另出五维雷达交互卡片）
 - 按建议改：逐条落实并交代"意见→落实"对照
 
 ### 维护知识库
@@ -76,11 +76,12 @@ python3 ~/.../paper-helper/scripts/kb_query.py "观察记录" -c 园本课程   
 | `kb_query.py` | 检索（中文子串匹配，OR 召回按相关度排序） | `kb_query.py "低结构材料 投放" -k 5 -c 园本课程` |
 | `topic_search.py` | 获奖选题检索 | `topic_search.py 自主游戏 一等奖 宁波` |
 | `make_docx.py` | 文本 → 评选规范 Word（表/图/文献） | `make_docx.py 论文.txt 输出.docx` |
+| `render_docx.py` | Word → 逐页 PNG，供排版视觉验收（需 LibreOffice+poppler，可选） | `render_docx.py 成稿.docx` |
 | `check_paper.py` | 成稿自检（结构/字数/引文/图表/样本量） | `check_paper.py 论文.txt` |
 | `init_kb.py` | 一键初始化知识库骨架（幂等） | `init_kb.py` |
 | `doctor.py` | 环境自检 + 冒烟测试，装完必跑 | `doctor.py` |
 | `drafts.py` | 列近期成稿，写作前比对防雷同 | `drafts.py` |
-| `web_search.py` | 联网检索公开资料（Tavily，可选）；`--paper` 学术模式找论文 | `web_search.py "户外自主游戏" --paper` |
+| `web_search.py` | 联网检索兜底（Tavily；宿主自带联网检索时优先用宿主的）；`--paper` 学术模式找论文 | `web_search.py "户外自主游戏" --paper` |
 
 知识库位置默认 `~/paper-kb/`，设环境变量 `PAPER_KB` 可改。索引文件是 `<KB>/.index.db`，删掉重跑 kb_build 即完全重建。
 
@@ -91,6 +92,7 @@ python3 ~/.../paper-helper/scripts/kb_query.py "观察记录" -c 园本课程   
 3. **文献不编造**：只列真实文献，文中 [n] 与文末一一对应
 4. **评审闭环**：内行检查点包括统计口径、行动研究循环、理论对话、概念张力、因果归因强度
 5. **评选合规**：正文 ≤4000 字、标题下署名、三线表、图题在下表题在上
+6. **行文去 AI 味**：写作参考卡六条红线（罗列改行文、过渡藏进内容、细节替形容、口号式结尾不写等），动笔前"自查四问"把关
 
 ## 六、目录结构
 
@@ -99,7 +101,7 @@ paper-helper/
 ├── SKILL.md              # 工作流定义（CLI 据此触发与执行）
 ├── README.md             # 本手册
 ├── INSTALL.md            # 安装迁移指南（含发给同事的一键安装提示词）
-├── scripts/              # kb_build / kb_query / topic_search / make_docx
+├── scripts/              # 10 个零依赖脚本：建库/检索/选题/排版/自检/渲染验收等，全表见"四、脚本速查"
 ├── prompts/              # 评审模板 / 写作参考卡 / WorkBuddy 一键导入提示词
 └── data/award_topics.json # 浙江 2024-2025 获奖选题 1459 条
 ```
@@ -107,6 +109,8 @@ paper-helper/
 ## 七、常见问题
 
 - **检索不到刚加的文档？** 重跑 `kb_build.py`（索引不会自动更新）
+- **没配 Tavily Key 能联网找资料吗？** 能。ZCode / Claude Code 等宿主自带联网检索时优先用宿主的，免任何 Key；Tavily 只是无宿主检索环境下脚本的兜底
+- **想要排版视觉验收？** 装 LibreOffice 与 poppler（见 INSTALL.md 总表）后 doctor 显示"排版视觉验收可用"，交付前逐页渲染复核；没装则自动跳过，不影响其他环节
 - **某文档被跳过？** 多为扫描版 PDF（无文字层）或加密文档，需先 OCR 或另存
 - **中文搜不到？** v1.1 已改用 instr 匹配，兼容 macOS 系统 SQLite；若仍异常请确认用的是本目录最新脚本
 - **多人共用一台机器？** 各自设 `PAPER_KB` 环境变量指向不同目录即可
